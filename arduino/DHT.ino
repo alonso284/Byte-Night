@@ -1,52 +1,100 @@
-#include <DHTesp.h>
+#include <DHT.h> // https://github.com/adafruit/DHT-sensor-library  
+#include <DHT_U.h>
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <ESP8266HTTPClient.h>
 
-#define DHT_PIN D0   // The pin to which the DHT sensor is connected, in this case, D0
-#define DHT_TYPE DHTesp::DHT11  // Specify DHT11 as the sensor type
-#define RELAY_PIN D1  // The pin to which you want to control the relay or output
-#define FAN_PIN A0
+#define DHTPIN    2
+#define LEDPIN    16 
+#define DHTTYPE   DHT11
+DHT dht(DHTPIN, DHTTYPE);
 
-DHTesp dht;
-bool relayState = LOW;
+const char* ssid = "Tec-IoT";
+const char* password = "spotless.magnetic.bridge";
+
+HTTPClient httpClient;
+WiFiClient wClient;
+
+String URL = "http://3.135.79.180:3100/api/logTemp";
+
+float last_recorded_temp = 0;
 
 void setup() {
-  Serial.begin(115200);  // You can adjust the baud rate as needed
-  dht.setup(DHT_PIN, DHT_TYPE);
-  pinMode(RELAY_PIN, OUTPUT);
-  pinMode(FAN_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, relayState); // Initialize the relay to LOW
+  Serial.begin(9600); 
+  Serial.println("***Inicializando conexión a My SQL***");
+
+  // Configuracion de sensor DHT
+  dht.begin(); 
+
+  // Configuracion de WiFi
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(100);
+
+  WiFi.begin(ssid, password);
+  Serial.print("Conectando a red WiFi \"");
+  Serial.print(ssid);
+  Serial.print("\"");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.print("\nConectado! IP: ");
+  Serial.println(WiFi.localIP());
+  delay(500);
+
+  // Configuracion de LED
+  pinMode(LEDPIN, OUTPUT);
+  
 }
 
 void loop() {
-  delay(dht.getMinimumSamplingPeriod());
+    // Obtener temperatura y humedad del sensor
+    float t = dht.readTemperature();
+    float h = dht.readHumidity();
 
-  float temperature = dht.getTemperature();
-  float humidity = dht.getHumidity();
-
-  if (isnan(temperature) || isnan(humidity)) {
-    Serial.println("Failed to read from DHT sensor!");
-  } else {
-    Serial.print("Temperature: ");
-    Serial.print(temperature);~
-    Serial.println(" °C");
-    Serial.print("Humidity: ");
-    Serial.print(humidity);
-    Serial.println(" %");
-
-  if (humidity > 80.0) {
-      analogWrite(FAN_PIN, 1023);  // Maximum fan speed
-    } else if (humidity > 75.0) {
-      analogWrite(FAN_PIN, 506);   // Medium fan speed
-    } else {
-      analogWrite(FAN_PIN, 0);     // Fan off
+    // Terminar en case de que haya error
+    if (isnan(t)) {
+      Serial.println("Error obteniendo los datos del sensor DHT11");
+      return;
     }
 
+    // Imprimir valores en monitor
+    Serial.print("\nTemperatura: ");
+    Serial.print(t);
+    Serial.print(" ºC\t");
+    Serial.print("\nHumidity: ");
+    Serial.print(h);
+    Serial.print(" %\t");
 
-    if (humidity > 80.0) {
-      relayState = HIGH;  // Turn the relay on
-      digitalWrite(RELAY_PIN, relayState);
-    } else {
-      relayState = LOW;   // Turn the relay off
-      digitalWrite(RELAY_PIN, relayState);
+    // Si la temperatura cambia por mas de 1.2, loggear la informacion
+    if(abs(last_recorded_temp - t) >= 1.2){
+      logIntento(h, t);
+      last_recorded_temp = t;
     }
+
+    // Si la humedad esta por encima de 80, encender el LED
+    if(h >= 80) digitalWrite(LEDPIN, HIGH);
+    else digitalWrite(LEDPIN, LOW);
+    
+      
+    delay(10000);
+}
+
+
+void logIntento(float h, float t){
+  if(WiFi.status() == WL_CONNECTED){
+    String data = URL;
+    // /api/logTemp/:humidity/:temperature
+    data = data + '/' + h + '/' + t;
+    Serial.println(data); 
+
+    // Hacer post request
+    httpClient.begin(wClient, data.c_str()); 
+    httpClient.addHeader("Content-Type", "Content-Type: application/json");
+    int httpResponseCode = httpClient.POST(data.c_str());
+    Serial.println(httpResponseCode); 
+    httpClient.end(); 
   }
+  return;
 }
