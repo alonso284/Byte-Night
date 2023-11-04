@@ -13,7 +13,7 @@ Tablas:
 
 Regresa los logs de la tabla indicada
 
-## POST `/api/logTemp//:humidity/:temperature`
+## POST `/api/logTemp/:humidity/:temperature`
 
 Variables:
 - `humidity`
@@ -41,4 +41,8 @@ Variables:
 
 Regresa lista con personas `uid`s que coinciden
 
+## POST `/api/purchaseDrink/:checkId/:drinkId`
 
+Variables:
+- `checkId`
+- `drinkId`

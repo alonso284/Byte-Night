@@ -135,6 +135,31 @@ class MainController {
             })
         }
     }
+
+    async purchaseDrink(req , res){
+        console.log(req.params.checkId)
+        console.log(req.params.drinkId)
+        if(req.params.checkId != null && req.params.drinkId != null) {
+            let checkId = req.params.checkId
+            let drinkId = req.params.drinkId;
+            var sql = `insert into drink_purchases (time_stamp, drink_id, check_id) values (now(), ${drinkId}, ${checkId});`
+            mysql.query(sql, (error,data,fields) => {
+                if(error) {
+                    res.status(500)
+                    res.send(error.message)
+                } else {
+                    console.log(data)
+                    res.json({
+                        status: 200,
+                        message: "Log uploaded successfully",
+                        affectedRows: data.affectedRows
+                    })
+                }
+            })
+        } else {
+          res.send('Por favor llena todos los datos!')
+        }
+    }
 }
 
 const controller = new MainController()
