@@ -2,3 +2,5 @@ mysql/.$Proyecto.drawio.bkp
 node_modules
 package-lock.json
 logs
+.DS_STORE
+*/.DS_STORE
