@@ -9,6 +9,7 @@ router.post('/api/logTemp/:humidity/:temperature', controller.logTemp);
 router.post('/api/logVolume/:decibels', controller.logVolume);
 router.post('/api/logUid/:uid', controller.logUid);
 router.post('/api/logPressure/:pressure', controller.logPressure);
-router.post('/api/purchaseDrink/:checkId/:drinkId', controller.purchaseDrink);
+router.post('/api/purchase/:type/:personId/:itemId', controller.purchase);
+// router.post('/api/purchaseFood/:checkId/:foodId', controller.purchaseFood);
 
 module.exports = router;

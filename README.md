@@ -41,8 +41,9 @@ Variables:
 
 Regresa lista con personas `uid`s que coinciden
 
-## POST `/api/purchaseDrink/:checkId/:drinkId`
+## POST `/api/purchase/:type/:personId/:itemId`
 
 Variables:
-- `checkId`
-- `drinkId`
+- `type` Tipo de producto: `drink` o `food`
+- `personId` Id del cliente (`uid`)
+- `itemId` Id del producot

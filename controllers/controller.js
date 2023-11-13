@@ -8,7 +8,13 @@ class MainController {
         if(req.params.humidity != null && req.params.temperature != null) {
             let humidity = req.params.humidity
             let temperature = req.params.temperature;
-            var sql = `insert into log_temp (log_date, temperature, humidity) values (now(), ${temperature}, ${humidity});`
+            let active;
+            if(temperature > 20){
+                active = 1;
+            } else {  
+                active = 0;
+            }
+            var sql = `insert into log_temp (log_date, temperature, humidity, active) values (now(), ${temperature}, ${humidity}, ${active});`
             mysql.query(sql, (error,data,fields) => {
                 if(error) {
                     res.status(500)
@@ -31,7 +37,13 @@ class MainController {
         console.log(req.params.decibels)
         if(req.params.decibels != null) {
             let decibels = req.params.decibels;
-            var sql = `insert into log_volume (log_date, decibels) values (now(), ${decibels});`
+            let active
+            if(decibels > 100){
+                active = 1;
+            } else {
+                active = 0;
+            }
+            var sql = `insert into log_volume (log_date, decibels, active) values (now(), ${decibels}, ${active});`
             mysql.query(sql, (error,data,fields) => {
                 if(error) {
                     res.status(500)
@@ -54,7 +66,7 @@ class MainController {
         console.log(req.params.uid)
         if(req.params.uid != null) {
             let uid = req.params.uid;
-            var sql = `insert into log_uid (log_date, uid) values (now(), ${uid});`
+            var sql = `insert into log_uid (log_date, uid, allowed) values (now(), ${uid}, (select count(*) > 0 from persons where uid = ${uid}));`
             mysql.query(sql, (error,data,fields) => {
                 if(error) {
                     res.status(500)
@@ -97,7 +109,13 @@ class MainController {
         console.log(req.params.pressure)
         if(req.params.pressure != null) {
             let pressure = req.params.pressure;
-            var sql = `insert into log_pressure (log_date, pressure) values (now(), ${pressure});`
+            let active;
+            if(pressure < 13 && pressure > 1){
+                active = 1;
+            } else {  
+                active = 0;
+            }
+            var sql = `insert into log_pressure (log_date, pressure, active) values (now(), ${pressure}, ${active});`
             mysql.query(sql, (error,data,fields) => {
                 if(error) {
                     res.status(500)
@@ -136,30 +154,74 @@ class MainController {
         }
     }
 
-    async purchaseDrink(req , res){
-        console.log(req.params.checkId)
-        console.log(req.params.drinkId)
-        if(req.params.checkId != null && req.params.drinkId != null) {
-            let checkId = req.params.checkId
-            let drinkId = req.params.drinkId;
-            var sql = `insert into drink_purchases (time_stamp, drink_id, check_id) values (now(), ${drinkId}, ${checkId});`
-            mysql.query(sql, (error,data,fields) => {
+    async purchase(req , res){
+        console.log(req.params.type)
+        console.log(req.params.personId)
+        console.log(req.params.itemId)
+        if(req.params.type != null && req.params.personId != null && req.params.itemId != null) {
+            let type = req.params.type;
+            let personId = req.params.personId;
+            let itemId = req.params.itemId;
+			var sql = `select id from checks where person_id=${personId} and paid_for=FALSE`;
+            mysql.query(sql, (error, data, fields) => {
                 if(error) {
                     res.status(500)
                     res.send(error.message)
                 } else {
                     console.log(data)
-                    res.json({
-                        status: 200,
-                        message: "Log uploaded successfully",
-                        affectedRows: data.affectedRows
-                    })
+                    // res.json({
+                    //     data
+                    // })
+					if(data.length != 0){
+						var checkId = data[0]["id"]
+						var sql = `insert into ${type}_purchases (time_stamp, ${type}_id, check_id) values (now(), ${itemId}, ${checkId});`
+						mysql.query(sql, (error,data,fields) => {
+							if(error) {
+								res.status(500)
+								res.send(error.message)
+							} else {
+								console.log(data)
+								res.json({
+									status: 200,
+									message: "Purchase successfully processed",
+									affectedRows: data.affectedRows
+								})
+							}
+						})
+					} else {
+          				res.send('Persona no tiene una cheque abierto')
+					}
                 }
             })
         } else {
           res.send('Por favor llena todos los datos!')
         }
     }
+
+    // async purchaseFood(req , res){
+    //     console.log(req.params.checkId)
+    //     console.log(req.params.foodId)
+    //     if(req.params.checkId != null && req.params.foodId != null) {
+    //         let checkId = req.params.checkId
+    //         let foodId = req.params.foodId;
+    //         var sql = `insert into food_purchases (time_stamp, food_id, check_id) values (now(), ${foodId}, ${checkId});`
+    //         mysql.query(sql, (error,data,fields) => {
+    //             if(error) {
+    //                 res.status(500)
+    //                 res.send(error.message)
+    //             } else {
+    //                 console.log(data)
+                    // res.json({
+                    //     status: 200,
+                    //     message: "Log uploaded successfully",
+                    //     affectedRows: data.affectedRows
+                    // })
+                // }
+            // })
+        // } else {
+          // res.send('Por favor llena todos los datos!')
+        // }
+    // }
 }
 
 const controller = new MainController()

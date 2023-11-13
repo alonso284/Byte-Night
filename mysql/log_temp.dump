@@ -27,8 +27,9 @@ CREATE TABLE `log_temp` (
   `log_date` timestamp NOT NULL,
   `temperature` float NOT NULL,
   `humidity` float NOT NULL,
+  `active` tinyint(1) NOT NULL,
   PRIMARY KEY (`log_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -37,7 +38,7 @@ CREATE TABLE `log_temp` (
 
 LOCK TABLES `log_temp` WRITE;
 /*!40000 ALTER TABLE `log_temp` DISABLE KEYS */;
-INSERT INTO `log_temp` VALUES (1,'2023-11-04 17:01:09',24,45),(2,'2023-11-04 17:01:09',14,30),(3,'2023-11-04 17:08:16',19,74.3);
+INSERT INTO `log_temp` VALUES (1,'2023-11-04 17:01:09',24,45,1),(2,'2023-11-04 17:01:09',14,30,0),(3,'2023-11-04 17:08:16',19,74.3,0),(4,'2023-11-13 22:35:16',43,23,1),(5,'2023-11-13 22:35:38',19,19,0);
 /*!40000 ALTER TABLE `log_temp` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -50,4 +51,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-11-04 12:17:50
+-- Dump completed on 2023-11-13 17:02:22

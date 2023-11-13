@@ -27,7 +27,8 @@ CREATE TABLE persons (
 	first_name 		VARCHAR(50) 	NOT NULL,
 	last_name 		VARCHAR(50) 	NOT NULL,
 	sex 			ENUM('M', 'F')  NOT NULL,
-	birth_date 		DATE 			NOT NULL
+	birth_date 		DATE 			NOT NULL,
+	register_date 	DATE 			NOT NULL
 	/* age is omitted due to redundancy */
 );
 
@@ -111,28 +112,32 @@ CREATE TABLE log_temp (
 	log_id 			INT 			AUTO_INCREMENT PRIMARY KEY,
 	log_date 		TIMESTAMP 		NOT NULL,
 	temperature 	FLOAT 			NOT NULL,
-	humidity 		FLOAT 			NOT NULL
+	humidity 		FLOAT 			NOT NULL,
+	active			BOOLEAN			NOT NULL
 );
 
 -- TABLA DE LECTOR DE VOLUMEN | ALE
 CREATE TABLE log_volume (
 	log_id 			INT 			AUTO_INCREMENT PRIMARY KEY,
 	log_date 		TIMESTAMP 		NOT NULL,
-	decibels 		INT 			NOT NULL
+	decibels 		INT 			NOT NULL,
+	active			BOOLEAN			NOT NULL
 );
 
 -- TABALA DE RFID | DEBANHI
 CREATE TABLE log_uid(
 	log_id 			INT 			AUTO_INCREMENT PRIMARY KEY,
 	log_date 		TIMESTAMP 		NOT NULL,
-	uid 			BIGINT 			NOT NULL
+	uid 			BIGINT 			NOT NULL,
+	allowed			BOOLEAN			NOT NULL
 );
 
 -- TABLA DE PRESION | DAVID
 CREATE TABLE log_pressure(
 	log_id 			INT 			AUTO_INCREMENT PRIMARY KEY,
 	log_date 		TIMESTAMP 		NOT NULL,
-    pressure 		INT 			NOT NULL
+    pressure 		INT 			NOT NULL,
+	active			BOOLEAN			NOT NULL
 );
 
 
