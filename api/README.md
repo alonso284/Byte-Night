@@ -47,3 +47,9 @@ Variables:
 - `type` Tipo de producto: `drink` o `food`
 - `personId` Id del cliente (`uid`)
 - `itemId` Id del producot
+
+## GET `/api/getChecks`
+
+## POST `/api/closeTab/:checkId`
+
+## POST `/api/openTab/:uid`

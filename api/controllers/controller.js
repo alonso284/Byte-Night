@@ -154,6 +154,59 @@ class MainController {
         }
     }
 
+    async getChecks(req,res){
+        console.log("Get Checks")
+        var sql = `SELECT c.id, c.person_id, p.first_name, p.last_name, c.open_time, c.close_time, paid_for, a.amount
+        FROM checks AS c
+        LEFT JOIN persons AS p ON p.id = c.person_id
+        LEFT JOIN
+        (
+            SELECT COALESCE(fdp.check_id, sdp.check_id) AS check_id,
+                   COALESCE(fdp.total, 0) + COALESCE(sdp.total, 0) AS amount
+            FROM
+              (SELECT fp.check_id, SUM(f.price) AS total
+               FROM food_purchases AS fp
+               LEFT JOIN foods AS f ON fp.food_id = f.id
+               GROUP BY fp.check_id) fdp
+            LEFT JOIN
+              (SELECT dp.check_id, SUM(d.price) AS total
+               FROM drink_purchases AS dp
+               LEFT JOIN drinks AS d ON dp.drink_id = d.id
+               GROUP BY dp.check_id) sdp
+            ON sdp.check_id = fdp.check_id
+        
+            UNION
+        
+            SELECT COALESCE(fdp.check_id, sdp.check_id) AS check_id,
+                   COALESCE(fdp.total, 0) + COALESCE(sdp.total, 0) AS amount
+            FROM
+              (SELECT fp.check_id, SUM(f.price) AS total
+               FROM food_purchases AS fp
+               LEFT JOIN foods AS f ON fp.food_id = f.id
+               GROUP BY fp.check_id) fdp
+            RIGHT JOIN
+              (SELECT dp.check_id, SUM(d.price) AS total
+               FROM drink_purchases AS dp
+               LEFT JOIN drinks AS d ON dp.drink_id = d.id
+               GROUP BY dp.check_id) sdp
+            ON sdp.check_id = fdp.check_id
+        ) AS a
+        ON c.id = a.check_id
+        ORDER BY c.paid_for, c.open_time ASC;`;
+        mysql.query(sql, (error, data, fields) => {
+            if(error) {
+                res.status(500)
+                res.send(error.message)
+            } else {
+                console.log(data)
+                res.json({
+                    data
+                })
+            }
+        })
+        
+    }
+
     async purchase(req , res){
         console.log(req.params.type)
         console.log(req.params.personId)
@@ -198,30 +251,71 @@ class MainController {
         }
     }
 
-    // async purchaseFood(req , res){
-    //     console.log(req.params.checkId)
-    //     console.log(req.params.foodId)
-    //     if(req.params.checkId != null && req.params.foodId != null) {
-    //         let checkId = req.params.checkId
-    //         let foodId = req.params.foodId;
-    //         var sql = `insert into food_purchases (time_stamp, food_id, check_id) values (now(), ${foodId}, ${checkId});`
-    //         mysql.query(sql, (error,data,fields) => {
-    //             if(error) {
-    //                 res.status(500)
-    //                 res.send(error.message)
-    //             } else {
-    //                 console.log(data)
-                    // res.json({
-                    //     status: 200,
-                    //     message: "Log uploaded successfully",
-                    //     affectedRows: data.affectedRows
-                    // })
-                // }
-            // })
-        // } else {
-          // res.send('Por favor llena todos los datos!')
-        // }
-    // }
+    async closeTab(req , res){
+        console.log(req.params.checkId)
+        if(req.params.checkId != null) {
+            let checkId = req.params.checkId;
+            var sql = `update checks set close_time=now(), paid_for=TRUE where id=${checkId};`
+            mysql.query(sql, (error,data,fields) => {
+                if(error) {
+                    res.status(500)
+                    res.send(error.message)
+                } else {
+                    console.log(data)
+                    res.json({
+                        status: 200,
+                        message: "Log uploaded successfully",
+                        affectedRows: data.affectedRows
+                    })
+                }
+            })
+        } else {
+          res.send('Por favor llena todos los datos!')
+        }
+    }
+
+    async openTab(req , res){
+        console.log(req.params.uid)
+        if(req.params.uid != null) {
+            let uid = req.params.uid;
+			var sql = `select p.id, count(c.id) as tabs from persons as p left join checks as c on c.person_id = p.id and paid_for = 0 where p.uid = ${uid} group by p.id;`;
+            mysql.query(sql, (error, data, fields) => {
+                if(error) {
+                    res.status(500)
+                    res.send(error.message)
+                } else {
+                    console.log(data)
+
+                    if (data.length === 0) {
+                        res.send('uid no existe en la base de datos');
+                        
+                    } else {
+                        if(data[0].tabs == 0){
+                            var sql = `insert into checks (person_id, open_time) values (${data[0].id}, now());`
+                            mysql.query(sql, (error,data,fields) => {
+                                if(error) {
+                                    res.status(500)
+                                    res.send(error.message)
+                                } else {
+                                    console.log(data)
+                                    res.json({
+                                        status: 200,
+                                        message: "Tab opened successfully",
+                                        affectedRows: data.affectedRows
+                                    })
+                                }
+                            })
+                        } else {
+                            res.send('Persona ya tiene una cheque abierto')
+                        }
+                    }
+                }
+            })
+        } else {
+          res.send('Por favor llena todos los datos!')
+        }
+    }
+    
 }
 
 const controller = new MainController()

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema</title>
+    <script src="https://unpkg.com/htmx.org@1.9.8"></script>
+</head>
+<style>
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+    }
+    /* #listContainer {
+        margin-top: 20px;
+        width: 80%;
+    } */
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+
+    th {
+        background-color: #f2f2f2;
+    }
+
+    #fixedItem {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: #f0f0f0;
+        padding: 20px;
+        border: 1px solid #ccc;
+        z-index: 1000; /* Ensure it is on top of everything */
+    }
+    body {
+        margin: 20px;
+        padding: 0;
+        height: 150vh; /* Make the page long enough to scroll */
+    }
+</style>
+<body onload="document.getElementById('loadListButton').click()">
+    <h1>Byte Night</h1> <button id="openTabButton">Open Tab</button>
+    <!-- Button to start or create new check -->
+    <!-- To look for checks, go to localhost:3100/api/getChecks -->
+    <button style="display: none;" id="loadListButton" hx-get="http://localhost:3100/api/getChecks" hx-target="#listContainer" hx-indicator="true">
+        Reload
+    </button>
+
+    <button style="display: none;" id="loadFoodButton" hx-get="http://localhost:3100/api/getLogs/foods" hx-target="#FoodIdSelect" hx-indicator="true">
+        Reload Food
+    </button>
+
+    <button style="display: none;" id="loadDrinkButton" hx-get="http://localhost:3100/api/getLogs/drinks" hx-target="#DrinkIdSelect" hx-indicator="true">
+        Reload Drinks
+    </button>
+
+    <center>
+    <div id="listContainer">
+        <!-- The loaded list will appear here -->
+    </div>
+    </center>
+
+    <div id="fixedItem" style="display: none;">
+        <h1>Check <span id="addItemCheckId"></span>: Person <span id="addItemPersonId"></span></h1>
+        <!-- Select elements for type, check_id, and item_id -->
+        <select id="typeSelect">
+            <option value="drink">none</option>
+            <option value="drink">Drink</option>
+            <option value="food">Food</option>
+        </select>
+        
+        <select id="FoodIdSelect" style="display: none;">
+        </select>
+        
+        <select id="DrinkIdSelect" style="display: none;">
+        </select>
+        
+        <!-- Button to trigger the HTMX post request -->
+        <button onclick="sendPurchaseRequest()">Purchase</button>
+        <button id="cancelBtn" onclick="cancelAction()">Cancel</button>
+    </div>
+
+    <script>
+        // Handle the htmx event after the response is received
+        document.getElementById('loadListButton').addEventListener('htmx:afterRequest', function (event) {
+            // Parse the JSON response
+            var jsonResponse = event.detail.xhr.responseText;
+            var data = JSON.parse(jsonResponse).data;
+
+            console.log("LOADING CHECKS");
+    
+            // Generate HTML table from the parsed data
+            var html = '<table>';
+            html += '<tr><th>ID</th><th>Person ID</th><th>First Name</th><th>Last Name</th><th>Open Time</th><th>Close Time</th><th>Amount</th><th>Paid For</th><th>Actions</th></tr>';
+            
+            data.forEach(function (item) {
+                html += '<tr>';
+                html += '<td>' + item.id + '</td>';
+                html += '<td>' + item.person_id + '</td>';
+                html += '<td>' + item.first_name + '</td>';
+                html += '<td>' + item.last_name + '</td>';
+                html += '<td>' + item.open_time + '</td>';
+                html += '<td>' + (item.close_time !== null ? item.close_time : 'N/A') + '</td>';
+
+                // Check if item.amount is not null before applying toFixed(2)
+                html += '<td>' + (item.amount !== null ? item.amount.toFixed(2) : 0) + '</td>';
+
+                html += '<td>' + (item.paid_for ? 'Yes' : 'No') + '</td>';
+                html += '<td class="button-container">';
+                
+                if (item.paid_for === 0) {
+                    html += '<button onclick="closeCheck(' + item.id + ')" >Close Tab</button>';
+                    html += '<button onclick="addItem(' + item.id + ', ' +  item.person_id  + ')">Add Item</button>';
+                }
+
+                html += '</td>';
+                html += '</tr>';
+            });
+
+            html += '</table>';
+    
+            // Update the content of the list container
+            document.getElementById('listContainer').innerHTML = html;
+        });
+
+        document.getElementById('loadFoodButton').addEventListener('htmx:afterRequest', function (event) {
+            // Parse the JSON response
+            var jsonResponse = event.detail.xhr.responseText;
+            var data = JSON.parse(jsonResponse).data;
+
+            var html = '';
+            data.forEach(function (item) {
+                html += '<option value="' + item.id + ' ">';
+                html += item.name;
+                html += '</option>';
+                html += '</tr>';
+            });
+    
+            // Update the content of the list container
+            document.getElementById('FoodIdSelect').innerHTML = html;
+        });
+
+        document.getElementById('loadDrinkButton').addEventListener('htmx:afterRequest', function (event) {
+            // Parse the JSON response
+            var jsonResponse = event.detail.xhr.responseText;
+            var data = JSON.parse(jsonResponse).data;
+
+            var html = '';
+            data.forEach(function (item) {
+                html += '<option value="' + item.id + ' ">';
+                html += item.name;
+                html += '</option>';
+                html += '</tr>';
+            });
+    
+            // Update the content of the list container
+            document.getElementById('DrinkIdSelect').innerHTML = html;
+        });
+
+        // Function to close the check with a POST request
+        function closeCheck(checkId) {
+            fetch('http://localhost:3100/api/closeTab/' + checkId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                    // Add any other headers if needed
+                },
+                body: JSON.stringify({}) // You can add data to the request body if needed
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                // You can handle success here
+                alert('Check closed successfully!');
+                document.getElementById('loadListButton').click();
+            }).catch(error => {
+                // Handle errors
+                console.error('Error closing check:', error);
+            });
+        }
+
+        // Get the select element by its ID
+        var typeSelect = document.getElementById('typeSelect');
+
+        // Add an event listener for the 'change' event
+        typeSelect.addEventListener('change', function() {
+            if(typeSelect.value == 'food'){
+                document.getElementById('FoodIdSelect').style.display = 'inline-block';
+                document.getElementById('DrinkIdSelect').style.display = 'none';
+            } else if (typeSelect.value == 'drink'){
+                document.getElementById('FoodIdSelect').style.display = 'none';
+                document.getElementById('DrinkIdSelect').style.display = 'inline-block';
+            } else {
+                document.getElementById('FoodIdSelect').style.display = 'none';
+                document.getElementById('DrinkIdSelect').style.display = 'none';
+            }
+        });
+
+        // Example function for adding an item
+        function addItem(checkId, personId) {
+            document.getElementById('loadFoodButton').click();
+            document.getElementById('loadDrinkButton').click();
+
+
+            // Add your cancel logic here
+            console.log('addItem button clicked');
+            // Hide the fixed item
+            document.getElementById('fixedItem').style.display = 'block';
+
+            document.getElementById('addItemCheckId').innerHTML = checkId;
+            document.getElementById('addItemPersonId').innerHTML = personId;
+            typeSelect.value = 'none';
+
+            var event = new Event('change');
+            typeSelect.dispatchEvent(event);
+        }
+
+        function cancelAction() {
+            // Add your cancel logic here
+            console.log('Cancel button clicked');
+            // Hide the fixed item
+            document.getElementById('fixedItem').style.display = 'none';
+        }
+
+        function sendPurchaseRequest() {
+            // Get selected values from the dropdowns
+            const type = document.getElementById('typeSelect').value;
+            const personId = document.getElementById('addItemPersonId').innerHTML;
+            var itemId;
+            if(type == 'food'){
+                itemId = document.getElementById('FoodIdSelect').value;
+            } else {
+                itemId = document.getElementById('DrinkIdSelect').value;
+            }
+
+            // Construct the URL with dynamic values
+            const url = `http://localhost:3100/api/purchase/${type}/${personId}/${itemId}`;
+            console.log('Sending POST request to:', url);
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                    // Add any other headers if needed
+                },
+                body: JSON.stringify({}) // You can add data to the request body if needed
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                // You can handle success here
+                alert('Item added successfully!');
+                document.getElementById('loadListButton').click();
+                // Hide the fixed item
+                document.getElementById('fixedItem').style.display = 'none';
+            }).catch(error => {
+                // Handle errors
+                console.error('Error closing check:', error);
+                // Hide the fixed item
+                document.getElementById('fixedItem').style.display = 'none';
+            });
+        }
+
+        document.getElementById('openTabButton').addEventListener('click', function() {
+            // Use the prompt function to get the UID from the user
+            const uid = prompt('Enter UID:');
+
+            // Check if the user entered a UID (not canceled)
+            if (uid !== null) {
+                // Make the POST request to http://localhost:3100/api/openTab/{UID}
+                fetch(`http://localhost:3100/api/openTab/${uid}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // You can add other headers if needed
+                    },
+                    // You can include a request body if needed
+                    // body: JSON.stringify({/* your data here */}),
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Handle the response data as needed
+                    alert('Result: ' + JSON.stringify(data));
+                    document.getElementById('loadListButton').click();
+                })
+                .catch(error => {
+                    // Handle errors
+                    console.error('Error:', error);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
