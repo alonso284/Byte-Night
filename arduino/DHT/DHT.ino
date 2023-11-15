@@ -74,11 +74,11 @@ void loop() {
     }
 
     // Si la humedad esta por encima de 80, encender el LED
-    if(h >= 80) digitalWrite(LEDPIN, HIGH);
-    else digitalWrite(LEDPIN, LOW);
+    if(h >= 76) digitalWrite(LEDPIN, LOW);
+    else digitalWrite(LEDPIN, HIGH);
     
       
-    delay(10000);
+    delay(1000);
 }
 
 
