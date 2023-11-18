@@ -9,24 +9,19 @@
 #include <MFRC522.h>
 #include <Servo.h>
 #include <dummy.h>
-#include <DHT.h> // https://github.com/adafruit/DHT-sensor-library  
-#include <DHT_U.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266HTTPClient.h>
-
-#define RST_PIN         5           // (D1)
-#define SS_PIN          4          // (D2) 
 #define LOCK_PIN        0          //D3
 #define ACTIVATION_TIME 100
-#define DHTPIN    2
-#define DHTTYPE   DHT11
 
 //pines y variables
+const int RST_PIN = D1;
+const int SS_PIN = D2;
+const int servoPin = D3;
 
 Servo myservo; //instancia de servo 
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // instancia de MFRC522
-DHT dht(DHTPIN, DHTTYPE);
 
 bool dataLock = false;//indicador 
 unsigned long Auth = 3158988764; //uid con el que se acepta la tarjeta
@@ -44,14 +39,20 @@ String URL_verify = "http://3.135.79.180:3100/api/verifyUid/";
 
 //funcion de abrir puerta (servo)
 
-void OpenDoor()
-{
-  myservo.write(180); //gira el servo 180 grados simulando el abrir la puerta
-  delay(5000); //espera 5 segundos o 5000 milisegundos, simulando que la puerta se queda abierta
-  myservo.write(0); //gira el servo 180 grados, regresando al 0, simulando cerrar la puerta
-  digitalWrite(LOCK_PIN, LOW); //activa el pasador de la cerradura
-  delay(ACTIVATION_TIME); //mantiene activada la cerradura
-  digitalWrite(LOCK_PIN, HIGH); //desactiva el pasador de la cerradura
+void openDoor() {
+  // Configuración del servo
+  myServo.attach(servoPin);
+
+  // Abrir la puerta (mover el servo a 180 grados)
+  myServo.write(180);
+  delay(3000);  // Puedes ajustar el tiempo de espera según sea necesario
+
+  // Regresar el servo a 0 grados (cerrar la puerta)
+  myServo.write(0);
+  delay(1000);  // Puedes ajustar el tiempo de espera según sea necesario
+
+  // Liberar el servo para reducir el consumo de energía
+  myServo.detach();
 }
 
 //funcion que regresa el link en donde se incluye el uid y el acceso que serán mandados
@@ -101,16 +102,14 @@ bool verifyIntento(unsigned long t, int ac) {
 void setup() {
   Serial.begin(9600); 
   //seccion de rfid
-  myservo.attach(2); // conecta el servo al pin 2
+ 
   myservo.write(0);// inicia la posicion en 0 grados
   SPI.begin(); // inicializa el bus SPI
-  pinMode(LOCK_PIN, OUTPUT); //lock_Pin es salida
-  digitalWrite(LOCK_PIN, HIGH); //establece el lock_pin en alto (bloquea la cerradura)
+  pinMode(servoPin, OUTPUT); //lock_Pin es salida
+  digitalWrite(servoPin, HIGH); //establece el lock_pin en alto (bloquea la cerradura)
   mfrc522.PCD_Init(); //inicializa el lector de tarjetas
   
   Serial.println("***Inicializando conexión a My SQL***");
-  
-  dht.begin(); 
 
   //conexión al wifi
   WiFi.mode(WIFI_STA);
