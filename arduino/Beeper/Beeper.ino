@@ -11,19 +11,19 @@
 DHT dht(DHTPIN, DHTTYPE); // Crea una instancia del sensor DHT
 
 #define D5 14  // Define el pin D5 como GPIO14 en NodeMCU.
-#define D4 2   // Define el pin D4 como GPIO2 en NodeMCU.
+#define D4 4   // Define el pin D4 como GPIO2 en NodeMCU.
 
 int sound_analog = A0;  // Pin analógico para el sensor de sonido.
 
-const char* ssid = "Fam Pena"; // SSID de la red WiFi
-const char* password = "1928374655"; // Contraseña de la red WiFi
+const char* ssid = "Tec-IoT"; // SSID de la red WiFi
+const char* password = "spotless.magnetic.bridge"; // Contraseña de la red WiFi
 
 
 HTTPClient httpClient; // Crea un cliente HTTP
 WiFiClient wClient; // Crea un cliente WiFi
 
 //String URL = "http://";
-String URL = "http://192.168.1.90:3100/api/logVolume/"; // URL del servidor al que se enviarán los datos
+String URL = "http://3.135.79.180:3100/api/logVolume/"; // URL del servidor al que se enviarán los datos
 
 void setup() {
   Serial.begin(9600); // Inicializa la comunicación serial a 9600 bps
@@ -63,7 +63,7 @@ void loop() {
   Serial.println(val_digital); 
 
   // Si el valor analógico es >100, activa el buzzer.
-  if (val_analog > 100) {
+  if (val_analog > 55) {
     digitalWrite(D4, HIGH); // Activa el buzzer.
     delay(3000);            // Espera 3 segundos con el buzzer activado.
     digitalWrite(D4, LOW);  // Desactiva el buzzer.
@@ -72,6 +72,7 @@ void loop() {
   // Si el WiFi está conectado, envía los datos al servidor
   if(WiFi.status() == WL_CONNECTED) {
     String fullPath = URL + String(val_analog); // Construye la URL completa con el valor analógico
+
 
     httpClient.begin(wClient, fullPath); // Inicia la conexión al servidor
     int httpCode = httpClient.POST(""); // Realiza la petición POST sin cuerpo
@@ -93,5 +94,5 @@ void loop() {
     WiFi.reconnect();
   }
 
-  delay(10000); // Espera 10 segundos antes de enviar los siguientes datos
+  delay(1000); // Espera 10 segundos antes de enviar los siguientes datos
 }
